@@ -1,0 +1,82 @@
+seed_everything: 42
+trainer:
+  default_root_dir: "{ASTROCLIP_ROOT}/outputs"
+  enable_checkpointing: true
+  gradient_clip_val: 1.
+  max_epochs: 100
+  precision: null
+  callbacks:
+    - class_path: LearningRateMonitor
+      init_args:
+        logging_interval: "step"
+    - class_path: ModelCheckpoint
+      init_args:
+        save_last: link
+        save_top_k: 1
+        every_n_epochs: 1
+        mode: "min"
+        monitor: "val_withlogit_total_loss"
+    - class_path: EarlyStopping
+      init_args:
+          patience: 5
+          monitor: "val_withlogit_total_loss"
+  logger:
+    class_path: CustomWandbLogger
+    init_args:
+      project: "astroclip-3-alignment"
+      entity: "{WANDB_ENTITY_NAME}"
+      save_dir: ${trainer.default_root_dir}
+      mode: "offline"
+  strategy: 'ddp_find_unused_parameters_true'
+
+model:
+  class_path: AstroClipModel
+  init_args:
+    image_encoder:
+      class_path: astroclip.models.astroclip.ImageHead
+      init_args:
+        config: "astroclip/astrodino/config.yaml"
+        model_weights: "{ASTROCLIP_ROOT}/pretrained/astrodino_16.ckpt"
+        save_directory: "{ASTROCLIP_ROOT}/outputs/astrodino"
+        freeze_backbone: False
+    spectrum_encoder:
+      class_path: astroclip.models.astroclip.SpectrumHead
+      init_args:
+        model_path: "{ASTROCLIP_ROOT}/pretrained/specformer.ckpt"
+        freeze_backbone: False
+
+    photometry_encoder:
+      class_path: astroclip.models.astroclip.PhotometryHead
+      init_args:
+        model_path: "{ASTROCLIP_ROOT}/pretrained/astrophoto.ckpt"
+        freeze_backbone: False
+
+    w_is: 1.0
+    w_ip: 1.0
+    w_sp: 1.0
+
+data:
+  class_path: AstroClipDataloader
+  init_args:
+    path: "{ASTROCLIP_ROOT}/data/data_g3_z"
+    columns:
+      - image
+      - spectrum
+      - params
+    batch_size: 128 #TODO:256
+    num_workers: 8 #TODO:8
+    collate_fn:
+      class_path: astroclip.data.AstroClipCollator
+      init_args:
+        center_crop: 64
+optimizer:
+  class_path: torch.optim.adamw.AdamW
+  init_args:
+    lr: 1e-4
+    weight_decay: 0.05
+lr_scheduler:
+  class_path: astroclip.CosineAnnealingWithWarmupLR
+  init_args:
+    T_max: 10_000
+    T_warmup: 1_000
+    eta_min: ${eval:'${optimizer.init_args.lr}//500'}

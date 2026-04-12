@@ -1,0 +1,107 @@
+seed_everything: 42
+trainer:
+  default_root_dir: "{ASTROCLIP_ROOT}/outputs"
+  enable_checkpointing: true
+  gradient_clip_val: 1.
+  max_epochs: 100
+  precision: '16-mixed'
+  callbacks:
+    - class_path: LearningRateMonitor
+      init_args:
+        logging_interval: "step"
+    - class_path: ModelCheckpoint
+      init_args:
+        save_last: link
+        save_top_k: 1
+        every_n_epochs: 1
+        mode: "min"
+        monitor: "val_loss_withlogit"
+    - class_path: EarlyStopping
+      init_args:
+          patience: 10
+          monitor: "val_loss_withlogit"
+  logger:
+    class_path: CustomWandbLogger
+    init_args:
+      project: "astroclip-alignment"
+      entity: "{WANDB_ENTITY_NAME}"
+      save_dir: ${trainer.default_root_dir}
+      mode: "offline"
+  strategy: 'ddp_find_unused_parameters_true'
+
+model:
+  class_path: AstroClipModel
+  init_args:
+    # --- 新增训练参数 ---
+    learnable_logit_scale: False
+    layer_decay: 0.7   # LLRD 核心参数
+    weight_decay: 0.05  # 强正则化
+    lr: 1e-4           # Base LR
+    logit_scale: 15.5  # 初始 Scale
+#    temperature: 0.1
+#    target_temperature: 0.04
+    loss_type: "clip"
+
+    cuda_gather: False #TODO: 取消显卡聚类
+
+    image_encoder:
+#      class_path: astroclip.models.astroclip.ImageHead
+#      init_args:
+#        config: "astroclip/astrodino/config.yaml"
+#        model_weights: "{ASTROCLIP_ROOT}/pretrained/astrodino_27.ckpt"
+##        photo_model_weights: "{ASTROCLIP_ROOT}/pretrained/astrophoto_03.ckpt"
+#        save_directory: "{ASTROCLIP_ROOT}/outputs/astrodino"
+#        model_embed_dim: 384
+#        embed_dim: 1024
+#        freeze_backbone: True
+      class_path: astroclip.models.astroclip.ImagePhotoHead
+      init_args:
+        config: "astroclip/astrodino/config.yaml"
+        image_model_weights: "{ASTROCLIP_ROOT}/pretrained/astrodino_27.ckpt"
+        photo_model_weights: "{ASTROCLIP_ROOT}/pretrained/photoencoder_00.ckpt"
+        save_directory: "{ASTROCLIP_ROOT}/outputs/astrodino"
+        image_embed_dim: 384
+        photo_embed_dim: 128
+        clip_embed_dim: 512
+        fusion_mode: "conc"  #i2p p2i bi conc
+        freeze_backbone: True
+
+    spectrum_encoder:
+      class_path: astroclip.models.astroclip.SpectrumHead
+      init_args:
+        model_path: "{ASTROCLIP_ROOT}/pretrained/specformer.ckpt"
+        embed_dim: 512
+        model_embed_dim: 768
+        freeze_backbone: True
+
+data:
+  class_path: AstroClipDataloader
+  init_args:
+    path: "{ASTROCLIP_ROOT}/data/data_g3_z"
+    columns:
+      - image
+      - spectrum
+      - params
+    batch_size: 1024 #TODO:256
+    num_workers: 1 #TODO:1
+    collate_fn:
+      class_path: astroclip.data.AstroClipCollator
+      init_args:
+        center_crop: 48
+
+# Optimizer 的配置实际上被 model.configure_optimizers 覆盖了
+optimizer:
+  class_path: torch.optim.adamw.AdamW
+  init_args:
+    lr: 1e-4
+    weight_decay: 0.05
+
+
+lr_scheduler:
+  class_path: astroclip.CosineAnnealingWithWarmupLR
+  init_args:
+#    T_max: 28_400  # TODO: 288985 / batch_size * cuda_num
+#    T_warmup: 2_840
+    T_max: 14_200  # TODO: 288985 / batch_size * cuda_num
+    T_warmup: 1_420
+    eta_min: ${eval:'${optimizer.init_args.lr}//500'}

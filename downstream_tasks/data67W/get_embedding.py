@@ -1,0 +1,188 @@
+import os
+from argparse import ArgumentParser
+from typing import Callable
+
+import numpy as np
+import torch
+from datasets import load_from_disk
+from tqdm import tqdm
+
+from astroclip.astrodino.utils import setup_astrodino
+from astroclip.env import format_with_env
+from astroclip.models import AstroClipModel, SpecFormer
+
+
+def get_single_embedding(
+        model: Callable,
+        data: list,
+        batch_size: int = 512,
+) -> np.ndarray:
+    """Get embeddings for data using a single model."""
+    model_embeddings = []
+    data_batch = []
+    # data_batch_c=[]
+    for item in tqdm(data):
+        # Add a batch dimension to the item tensor
+        # data_batch.append(torch.tensor(item, dtype=torch.float32)[None, ...])
+        data_batch.append(item.clone().detach()[None, ...])
+
+        if len(data_batch) == batch_size:
+            with torch.no_grad():
+                # Create a batch tensor and move it to the GPU
+                batch_tensor = torch.cat(data_batch).cuda()
+                # The provided model function handles inference and returns a numpy array
+                embeddings = model(batch_tensor)
+                model_embeddings.append(embeddings)
+            data_batch = []
+
+    # Process the final batch if it's not empty
+    if len(data_batch) > 0:
+        with torch.no_grad():
+            batch_tensor = torch.cat(data_batch).cuda()
+            embeddings = model(batch_tensor)
+            model_embeddings.append(embeddings)
+
+    # Concatenate embeddings from all batches into a single numpy array
+    return np.concatenate(model_embeddings)
+
+
+def embed_provabgs(
+        file_train: str,
+        file_test: str,
+        pretrained_dir: str,
+        output_dir: str,
+        model_name: str,
+        ckpt: str,
+        batch_size: int = 512,
+):
+    """
+    Generates and saves embeddings for a specified model on training and test datasets.
+    """
+    # --- Model Setup ---
+    astrodino_output_dir = os.path.join(pretrained_dir, "astrodino_output_dir")
+
+    # Select and configure the requested model
+    if model_name in ["astroclip_image", "astroclip_spectrum","astroclip_photo"]:
+        astroclip_ckpt = os.path.join(pretrained_dir, f"{ckpt}.ckpt")
+        astroclip = AstroClipModel.load_from_checkpoint(checkpoint_path=astroclip_ckpt)
+        astroclip.eval()
+        if model_name == "astroclip_image":
+            data_key = "image"
+            input_type = "image"
+        elif model_name == "astroclip_spectrum":
+            data_key = "spectrum"
+            input_type = "spectrum"
+        elif model_name == "astroclip_photo":
+            data_key = "params"
+            input_type = "photometry"
+        else:
+            raise ValueError(f"Model '{model_name}' is not recognized.")
+
+        model = lambda x: astroclip(x, input_type=input_type).cpu().numpy()
+    elif model_name == "specformer":
+        specformer_ckpt = os.path.join(pretrained_dir, f"{ckpt}.ckpt")
+        checkpoint = torch.load(specformer_ckpt)
+        init_dicts=checkpoint["hyper_parameters"]['init_args']
+        specformer = SpecFormer(**init_dicts)
+        specformer.load_state_dict(checkpoint["state_dict"])
+        specformer.cuda()
+
+        data_key = "spectrum"
+        model = lambda x: np.mean(specformer(x)["embedding"].cpu().numpy(), axis=1)
+    elif model_name == "astrodino":
+        astrodino_ckpt = os.path.join(pretrained_dir, f"{ckpt}.ckpt")
+        astrodino = setup_astrodino(astrodino_output_dir, astrodino_ckpt)
+        data_key = "image"
+        model = lambda x: astrodino(x).cpu().numpy()
+    else:
+        raise ValueError(f"Model '{model_name}' is not recognized.")
+
+    print(f"Model '{model_name}' has been set up successfully!")
+
+    # --- Data Loading and Embedding Generation ---
+    files = {"train": file_train, "test": file_test}
+    for split, f in files.items():
+        print(f"Processing '{split}' dataset...")
+        dataset = load_from_disk(f)
+        dataset.set_format("torch")
+        data_to_embed = dataset[data_key]
+
+        # Generate embeddings for the current dataset split
+        embeddings = get_single_embedding(model, data_to_embed, batch_size)
+
+        # --- Save Embeddings ---
+        npz_dict = {f"{model_name}_embeddings": embeddings}
+        if 'z' in dataset.column_names:
+            npz_dict['z'] = np.array(dataset['z'])
+        if 'params' in dataset.column_names:
+            npz_dict['params'] = np.array(dataset['params'])
+
+        output_filename = os.path.join(output_dir, f"{split}_{model_name}_embedding.npz")
+        np.savez(output_filename, **npz_dict)
+        print(f"Embeddings for the '{split}' split have been saved to {output_filename}")
+
+
+if __name__ == "__main__":
+    ASTROCLIP_ROOT = format_with_env("{ASTROCLIP_ROOT}")
+    parser = ArgumentParser()
+    parser.add_argument(
+        "--train",
+        type=str,
+        default=f"{ASTROCLIP_ROOT}/data/data_67W/train_dataset_preprocessed_c48",
+        help="Path to the training dataset.",
+    )
+    parser.add_argument(
+        "--test",
+        type=str,
+        default=f"{ASTROCLIP_ROOT}/data/data_67W/test_dataset_preprocessed_c48",
+        help="Path to the test dataset.",
+    )
+    parser.add_argument(
+        "--pretrained_dir",
+        type=str,
+        default=f"{ASTROCLIP_ROOT}/pretrained",
+        help="Directory containing pretrained model checkpoints.",
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        required=True,
+        choices=["astroclip_image", "astroclip_spectrum","astroclip_photo", "astrodino", "specformer"],
+        help="The model to use for generating embeddings.",
+    )
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        default=256,
+        help="The batch size for processing.",
+    )
+    parser.add_argument(
+        "--output_dir",
+        type=str,
+        default=f"{ASTROCLIP_ROOT}/pretrained/embeddings",
+    )
+    parser.add_argument(
+        "--ckpt",
+        type=str,
+        required=True,
+        # default="astrodino_27",
+    )
+    args = parser.parse_args()
+
+    # --- 新增的代码 ---
+    # 在保存文件之前，确保输出目录存在
+    os.makedirs(args.output_dir, exist_ok=True)
+
+    # 输出数据集名
+    print(f"Using train dataset: {os.path.basename(args.train)}")
+    print(f"Using test dataset: {os.path.basename(args.test)}")
+
+    embed_provabgs(
+        args.train,
+        args.test,
+        args.pretrained_dir,
+        args.output_dir,
+        args.model,
+        args.ckpt,
+        args.batch_size
+    )

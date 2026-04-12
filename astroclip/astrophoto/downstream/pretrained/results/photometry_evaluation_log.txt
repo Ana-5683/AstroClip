@@ -1,0 +1,12 @@
+--- Redshift Prediction Log for 'photometry' Embeddings ---
+
+--- 评估结果: photometry_MLP ---
+  R² 分数: 0.7791
+  相对偏差 < 0.1 的比例: 78.20%
+  相对偏差 < 0.2 的比例: 94.40%
+
+--- 评估结果: photometry_KNN ---
+  R² 分数: 1.0000
+  相对偏差 < 0.1 的比例: 100.00%
+  相对偏差 < 0.2 的比例: 100.00%
+

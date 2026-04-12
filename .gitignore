@@ -1,0 +1,9 @@
+dsm/csv/
+dsm/fits
+dsm/spect/
+dsm/script/*.csv
+dbx/csv/
+.idea
+.vscode
+__pycache__/
+*.pyc
