@@ -31,8 +31,8 @@ warnings.simplefilter('ignore', category=FITSFixedWarning)
 # ==========================================
 # 配置区域 (保持你的路径不变)
 # ==========================================
-root="/home/kongxiao/data45/kx/dsm/"
-CSV_FILE = f'{root}/data/sdss_quasar_dataset.csv'
+root="/home/kongxiao/data45/kx/dsm"
+CSV_FILE = f'{root}/data/DR16Q_v4.csv'
 CACHE_DIR = f'{root}/cache/data_cache'
 OUTPUT_DIR = f'{root}/data/dr16q_v4'
 

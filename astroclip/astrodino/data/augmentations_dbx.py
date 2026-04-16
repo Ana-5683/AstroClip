@@ -155,7 +155,7 @@ class RandomGaussianBlur(transforms.RandomApply):
     """Randomly apply Gaussian blur to the image."""
 
     def __init__(self, *, p: float = 0.5):
-        keep_p = 1 - p
+        keep_p = p
         transform = GaussianBlur()
         super().__init__([transform], p=keep_p)
 
@@ -163,7 +163,7 @@ class RandomGaussianNoise(transforms.RandomApply):
     """Randomly apply Gaussian noise to the image."""
 
     def __init__(self, *, im_dim=64, p: float = 0.5):
-        keep_p = 1 - p
+        keep_p = p
         transform = GaussianNoise(im_dim=im_dim)
         super().__init__([transform], p=keep_p)
 
@@ -191,17 +191,27 @@ class GaussianNoise:
         self.uniform = uniform
 
         # Log normal fit paramaters
-
         # now
+        # self.shape_dist = np.array(
+        #     [0.1745501011610031, 0.13902300596237183, 0.11488369852304459, 0.13054630160331726, 0.17551860213279724])
+        # self.loc_dist = np.array([0, 0, 0, 0, 0])
+        # self.scale_dist = np.array(
+        #     [0.04473619908094406, 0.016824299469590187, 0.026677900925278664, 0.04432990029454231, 0.17248259484767914])
+        #
+        # self.sigma_dist = np.log(self.scale_dist)
+        #
+        # # noise in channels is uncorrelated, as images taken at dirrerent times/telescopes
+        # self.noise_ch_min = np.array([0.031167, 0.0132974, 0.0216753, 0.0336255, 0.1219355])
+        # self.noise_ch_max = np.array([0.0696115, 0.024097, 0.0360224, 0.0607057, 0.2605831])
+
         self.shape_dist = np.array(
-            [0.1745501011610031, 0.13902300596237183, 0.11488369852304459, 0.13054630160331726, 0.17551860213279724])
-        self.loc_dist = np.array([0, 0, 0, 0, 0])
+            [0.2812829911708832, 0.4576700031757355, 0.3492976129055023, 0.18958400189876556, 0.3350754976272583])
+        self.loc_dist = np.array([0.0170555, 0.0117507, 0.0181909, 0.0146748, 0.0810929])
         self.scale_dist = np.array(
-            [0.04473619908094406, 0.016824299469590187, 0.026677900925278664, 0.04432990029454231, 0.17248259484767914])
+            [0.027176599949598312, 0.004750399850308895, 0.00813009962439537, 0.029484499245882034, 0.088605597615242])
 
         self.sigma_dist = np.log(self.scale_dist)
 
-        # noise in channels is uncorrelated, as images taken at dirrerent times/telescopes
         self.noise_ch_min = np.array([0.031167, 0.0132974, 0.0216753, 0.0336255, 0.1219355])
         self.noise_ch_max = np.array([0.0696115, 0.024097, 0.0360224, 0.0607057, 0.2605831])
 

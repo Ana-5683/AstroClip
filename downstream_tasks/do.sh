@@ -12,7 +12,9 @@
 set -e
 CUDA_VISIBLE_DEVICES=2 python downstream_tasks/get_embedding.py --dset data_g3_z --name c48_pe --model astrodino --ckpt astrodino_63 && CUDA_VISIBLE_DEVICES=2 python downstream_tasks/redshift.py --model astrodino --ckpt astrodino_63
 CUDA_VISIBLE_DEVICES=4 python downstream_tasks/get_embedding.py --dset data_g3_z --name c48_pe --model astrodino --ckpt astrodino_64 && CUDA_VISIBLE_DEVICES=4 python downstream_tasks/redshift.py --model astrodino --ckpt astrodino_64
-CUDA_VISIBLE_DEVICES=2 python downstream_tasks/get_embedding.py --dset data_g3_z --name c48_pe --model astrodino --ckpt astrodino_65 && CUDA_VISIBLE_DEVICES=2 python downstream_tasks/redshift.py --model astrodino --ckpt astrodino_65
+
+set -e
+CUDA_VISIBLE_DEVICES=0 python downstream_tasks/get_embedding.py --dset data_g3_z --name c48_pe --model astrodino --ckpt astrodino_66 && CUDA_VISIBLE_DEVICES=0 python downstream_tasks/redshift.py --model astrodino --ckpt astrodino_66
 
 
 

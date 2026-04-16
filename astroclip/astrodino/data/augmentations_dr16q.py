@@ -87,15 +87,9 @@ class DataAugmentationAstroDINO(object):
         self.global_transfo2 = transforms.Compose([global_transfo2_extra])
         self.local_transfo = transforms.Compose([local_transfo_extra])
 
-        # now
-        self.norm = transforms.Normalize(mean=[0.003918, 0.00564221, 0.00870101, 0.01226911, 0.01992336],
-                                         std=[0.4310049, 0.27417892, 0.38182727, 0.47646362, 1.3710657])
-
-        # data67W
-
-        # z1-5
-        # self.norm = transforms.Normalize(mean=[0.00392827, 0.00634693, 0.00951248, 0.01321839, 0.01975857],
-        #                                  std=[0.20640903, 0.27777484, 0.38276206, 0.4807447, 1.12889713])
+        # dr16q
+        self.norm = transforms.Normalize(mean=[0.00383469, 0.00610499, 0.0091598, 0.01276288, 0.01901501],
+                                         std=[0.16391228, 0.25970103, 0.36365715, 0.45392031, 1.03993761])
 
     def __call__(self, image):
         output = {}
@@ -190,25 +184,15 @@ class GaussianBlur:
 
         # Log normal fit paramaters
 
-        # now
-        self.shape_dist = np.array([0.3490406, 0.2582798, 0.3337356, 0.4394641, 0.6281115])
-        self.loc_dist = np.array([0.752382, 0.7642949, 0.803989, 0.9436479, 1.1158381])
-        self.scale_dist = np.array([1.4370568, 1.9462386, 1.6218294, 1.2486718, 0.8676406])
+        # dr16q
+        self.shape_dist = np.array([0.25421, 0.2179822, 0.3020351, 0.382755, 0.4799354])
+        self.loc_dist = np.array([0.0191851, -0.0563969, 0.4425969, 0.7097069, 0.9590086])
+        self.scale_dist = np.array([2.4481445, 2.8860407, 2.1142337, 1.6421678, 1.1622439])
 
         self.sigma_dist = np.log(self.scale_dist)
 
-        self.psf_ch_min = np.array([1.3959353, 1.8118689, 1.5144078, 1.3738828, 1.3474936])
-        self.psf_ch_max = np.array([4.1464071, 4.6310138, 4.7327875, 4.7048585, 4.4890077])
-
-        # data_67W
-        # self.shape_dist = np.array([0.2566401, 0.2733183, 0.3251265, 0.3942789, 0.5002745])
-        # self.loc_dist = np.array([0.0276982, 0.6849072, 0.6558717, 0.7608271, 0.9792627])
-        # self.scale_dist = np.array([2.4549237, 2.2026109, 1.9550941, 1.6290672, 1.1643986])
-        #
-        # self.sigma_dist = np.log(self.scale_dist)
-        #
-        # self.psf_ch_min = np.array([1.4146431, 1.8498239, 1.5530287, 1.393043, 1.3624972])
-        # self.psf_ch_max = np.array([4.3686745, 5.0043672, 5.0951172, 5.0614738, 4.6931877])
+        self.psf_ch_min = np.array([1.4125755, 1.6544787, 1.4586677, 1.3786036, 1.3617372])
+        self.psf_ch_max = np.array([4.3120573, 4.8837006, 4.9584731, 4.9203192, 4.4831157])
 
     def __call__(self, image: np.ndarray):
         # noise in channels is uncorrelated, as images taken at different times/telescopes
@@ -237,8 +221,7 @@ class GaussianBlur:
                 )
 
         return image
-
-
+    
 class GaussianNoise:
     """
     Augmentations tuned to the Legacy Survey Data (with minor modifications).
@@ -276,16 +259,15 @@ class GaussianNoise:
         # self.noise_ch_min = np.array([0.031167, 0.0132974, 0.0216753, 0.0336255, 0.1219355])
         # self.noise_ch_max = np.array([0.0696115, 0.024097, 0.0360224, 0.0607057, 0.2605831])
 
-        self.shape_dist = np.array(
-            [0.2812829911708832, 0.4576700031757355, 0.3492976129055023, 0.18958400189876556, 0.3350754976272583])
-        self.loc_dist = np.array([0.0170555, 0.0117507, 0.0181909, 0.0146748, 0.0810929])
-        self.scale_dist = np.array(
-            [0.027176599949598312, 0.004750399850308895, 0.00813009962439537, 0.029484499245882034, 0.088605597615242])
+        self.shape_dist = np.array([0.2978227138519287, 0.4169008135795593, 0.32258281111717224, 0.2001056969165802, 0.32817599177360535])
+        self.loc_dist = np.array([0.0186686, 0.0114336, 0.0176814, 0.0161027, 0.0779331])
+        self.scale_dist = np.array([0.025388799607753754, 0.005107299890369177, 0.008673599921166897, 0.027928799390792847, 0.09152259677648544])
 
         self.sigma_dist = np.log(self.scale_dist)
 
-        self.noise_ch_min = np.array([0.031167, 0.0132974, 0.0216753, 0.0336255, 0.1219355])
-        self.noise_ch_max = np.array([0.0696115, 0.024097, 0.0360224, 0.0607057, 0.2605831])
+        # (可选) 你可以使用以下值为 noise_ch_min 和 noise_ch_max 赋值
+        self.noise_ch_min = np.array([0.0312117, 0.0133309, 0.0216343, 0.0335581, 0.1218433])
+        self.noise_ch_max = np.array([0.0688522, 0.0240922, 0.0358476, 0.0604006, 0.260364])
 
 
     def __call__(self, image: np.ndarray):
@@ -314,4 +296,5 @@ class GaussianNoise:
                 )
 
         return image
+
 

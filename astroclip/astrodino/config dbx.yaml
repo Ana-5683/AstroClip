@@ -74,7 +74,7 @@ train:
   OFFICIAL_EPOCH_LENGTH: 1250
   cache_dataset: true
   centering: "centering" # or "sinkhorn_knopp"
-#  use_uncertainty_weighting: false      # 损失函数权重变为可学习
+#  use_uncertainty_weighting: false
 
 student:
   arch: vit_small
@@ -89,7 +89,7 @@ student:
   qkv_bias: true
   proj_bias: true
   ffn_bias: true
-#  num_register_tokens: 4     # 注册token的数量，0表示不使用注册token，4表示使用4个注册token（每个token对应一个红移bin）
+#  num_register_tokens: 4
 
 teacher:
   momentum_teacher: 0.992
