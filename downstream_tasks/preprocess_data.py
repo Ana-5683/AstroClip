@@ -3,7 +3,7 @@ import argparse
 import numpy as np
 import torch
 from torchvision import transforms
-from datasets import load_from_disk, Dataset, Sequence, Value
+from datasets import load_from_disk, Dataset, Sequence, Value,Array3D
 import logging
 
 from astroclip import format_with_env
@@ -246,7 +246,8 @@ def create_preprocessing_function(size):
         #                      std=[0.19513715, 0.26280681, 0.37203279, 0.46529404, 1.06711372])
     ])
 
-    photo_transform = PhotometryTransform()
+    # 当前下游任务不使用 params，这里先保留原始字段，不做额外变换。
+    # photo_transform = PhotometryTransform()
 
     def preprocess(example: dict) -> dict:
         """
@@ -254,14 +255,14 @@ def create_preprocessing_function(size):
         """
 
         # 1. 处理测光
-        # example['params'] = photo_transform(example['params']).numpy()
+        # example['params'] = photo_transform(example['params']).numpy().astype(np.float32, copy=False)
 
         # 2. 处理图像
         # 将处理后的 Tensor 转回 NumPy 数组以便 datasets 库保存
-        example['image'] = image_transform(example['image']).numpy()
+        example['image'] = image_transform(example['image']).numpy().astype(np.float32, copy=False)
 
         # 3. 处理光谱
-        example['spectrum'] = example['spectrum'].numpy()
+        example['spectrum'] = example['spectrum'].numpy().astype(np.float32, copy=False)
 
         return example
 
@@ -313,17 +314,14 @@ def main(args):
             num_proc=args.num_workers
         )
 
-        # --- 【修改方案】使用通用的 Sequence 定义，不再限制具体形状 ---
-        logging.info("正在将元数据修改为通用格式 (Sequence)...")
+        # 预处理后各字段的形状已经固定，直接声明成精确 schema，
+        # 避免使用宽泛 Sequence 时出现 1D/2D 结构不匹配。
+        logging.info("正在将元数据修改为预处理后的固定格式...")
 
         new_features = processed_dataset.features.copy()
 
-        # 将 image 定义为：任意大小的 3D float32 列表
-        # 结构: [Dim1, Dim2, Dim3] -> Sequence(Sequence(Sequence(Value)))
-        new_features["image"] = Sequence(Sequence(Sequence(Value("float32"))))
-
-        # 将 params 定义为：任意长度的 2D float32 列表 (因为从15变成了19)
-        new_features["params"] =Sequence(Sequence(Value("float32")))  # 2D: [5, 2]
+        new_features["image"] = Array3D(shape=(5, args.size, args.size), dtype="float32")
+        new_features["spectrum"] = Sequence(feature=Value("float32"), length=4096)
 
         # 应用修改 (Cast)
         processed_dataset = processed_dataset.cast(new_features)

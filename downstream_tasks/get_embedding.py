@@ -22,9 +22,14 @@ def get_single_embedding(
     data_batch = []
     # data_batch_c=[]
     for item in tqdm(data):
+        # 兼容 datasets 返回 torch.Tensor 或 numpy.ndarray 的两种情况。
+        if not isinstance(item, torch.Tensor):
+            item = torch.as_tensor(item, dtype=torch.float32)
+        else:
+            item = item.detach().to(dtype=torch.float32)
+
         # Add a batch dimension to the item tensor
-        # data_batch.append(torch.tensor(item, dtype=torch.float32)[None, ...])
-        data_batch.append(item.clone().detach()[None, ...])
+        data_batch.append(item[None, ...])
 
         if len(data_batch) == batch_size:
             with torch.no_grad():
