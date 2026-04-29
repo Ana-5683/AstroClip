@@ -10,17 +10,27 @@
 
 # dino
 set -e
-CUDA_VISIBLE_DEVICES=2 python downstream_tasks/get_embedding.py --dset data_g3_z --name c48_pe --model astrodino --ckpt astrodino_63 && CUDA_VISIBLE_DEVICES=2 python downstream_tasks/redshift.py --model astrodino --ckpt astrodino_63
+DSET=dr16q_v4
+NAME=c48
+MODEL=astrodino
+CKPT=astrodino_67
+CUDA_VISIBLE_DEVICES=2 python downstream_tasks/get_embedding.py --dset $DSET --name $NAME --model $MODEL --ckpt $CKPT && CUDA_VISIBLE_DEVICES=2 python downstream_tasks/redshift.py --model $MODEL --ckpt $CKPT
 
 # clip
 set -e
-CUDA_VISIBLE_DEVICES=0 python downstream_tasks/get_embedding.py --model astroclip_image  --dset data_g3_z --name c48_pe --ckpt astroclip_44
-CUDA_VISIBLE_DEVICES=0 python downstream_tasks/redshift.py --model astroclip_image --ckpt astroclip_44
+DSET=dr16q_v4
+NAME=c48
+MODEL=astroclip_image
+CKPT=astroclip_44
+CUDA_VISIBLE_DEVICES=0 python downstream_tasks/get_embedding.py --model $MODEL --dset $DSET --name $NAME --ckpt $CKPT
+CUDA_VISIBLE_DEVICES=0 python downstream_tasks/redshift.py --model $MODEL --ckpt $CKPT
 
-# clip ip
+# clip ip(错误的示例，需修改)
 set -e
-CUDA_VISIBLE_DEVICES=2 python downstream_tasks/get_embedding_ip.py --model astroclip_ip --ckpt astroclip_62 &&
-CUDA_VISIBLE_DEVICES=2 python downstream_tasks/redshift.py --model astroclip_ip --ckpt astroclip_62 &&
+MODEL=astroclip_ip
+CKPT=astroclip_62
+CUDA_VISIBLE_DEVICES=2 python downstream_tasks/get_embedding_ip.py --model $MODEL --ckpt $CKPT &&
+CUDA_VISIBLE_DEVICES=2 python downstream_tasks/redshift.py --model $MODEL --ckpt $CKPT &&
 
 
 
