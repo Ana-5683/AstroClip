@@ -1,15 +1,7 @@
-## preprocess_data运行
-
+# preprocess_data运行
+把mean和std换成对应数据集,另外dr16q_v4的测光数据并未做处理
 ``` bash
-python downstream_tasks/preprocess_data.py --data_dir ../data/data_g3_z
+python downstream_tasks/preprocess_data.py --dset dr16q_v4 --name c48 --size 48
 ```
 
-## get_embedding运行
-``` bash
-CUDA_VISIBLE_DEVICES=7 python downstream_tasks/get_embedding.py --model astrodino --ckpt astrodino_02 --output_dir ../pretrained/embeddings/astrodino_02
-```
-## redshift运行
-
-``` bash
-CUDA_VISIBLE_DEVICES=7 python downstream_tasks/redshift.py --model astroclip_spectrum --pretrained_dir ../pretrained/embeddings/astrodino_04 --output_dir ../pretrained/results/astrodino_04
-```
+# 阅读do.sh看如何执行get_embedding.py和redshift.py

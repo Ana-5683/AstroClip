@@ -234,17 +234,16 @@ def create_preprocessing_function(size):
     # 完全按照您提供的参数和流程
     image_transform = transforms.Compose([
         transforms.CenterCrop(size),
-        transforms.Normalize(mean=[0.003918, 0.00564221, 0.00870101, 0.01226911, 0.01992336],
-                             std=[0.4310049, 0.27417892, 0.38182727, 0.47646362, 1.3710657])
+        # dr16q
+        transforms.Normalize(mean=[0.00383469, 0.00610499, 0.0091598, 0.01276288, 0.01901501],
+                             std=[0.16391228, 0.25970103, 0.36365715, 0.45392031, 1.03993761])
+        # dbx
+        # transforms.Normalize(mean=[0.003918, 0.00564221, 0.00870101, 0.01226911, 0.01992336],
+        #                      std=[0.4310049, 0.27417892, 0.38182727, 0.47646362, 1.3710657])
 
         # sd
         # transforms.Normalize(mean=[0.00379948, 0.00609522, 0.00919202, 0.01270878, 0.01900207],
         #                      std=[0.19513715, 0.26280681, 0.37203279, 0.46529404, 1.06711372])
-
-        # mine
-        # transforms.Normalize(mean=[0.00394422, 0.00634838, 0.00951161, 0.01322077, 0.01987493],
-        #                      std=[0.21453417, 0.27831964, 0.38694553, 0.48269472, 1.15967184])
-
     ])
 
     photo_transform = PhotometryTransform()
@@ -255,7 +254,7 @@ def create_preprocessing_function(size):
         """
 
         # 1. 处理测光
-        example['params'] = photo_transform(example['params']).numpy()
+        # example['params'] = photo_transform(example['params']).numpy()
 
         # 2. 处理图像
         # 将处理后的 Tensor 转回 NumPy 数组以便 datasets 库保存
